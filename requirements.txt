@@ -1,0 +1,18 @@
+# 综述论文生成工具 - 成员F模块依赖
+# 核心依赖（必装）
+gradio>=4.0
+
+# 导出功能依赖
+python-docx>=1.1
+reportlab>=4.0
+
+# 可选：PDF 导出优先方案（需单独安装 pandoc 命令行工具）
+# https://pandoc.org/installing.html
+
+# 完整后端接入时需要（Sprint 2+）
+# langchain
+# langgraph
+# chromadb
+# pymupdf
+# sentence-transformers
+# openai
