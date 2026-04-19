@@ -292,6 +292,15 @@ body {
     background: linear-gradient(135deg,#e0f2fe 0%,#f0f9ff 50%,#fef9e3 100%);
     min-height: 100vh;
 }
+
+/* 英文内容使用更专业的衬线字体 */
+body, input, textarea, select, button {
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+body :not(:lang(zh)) {
+    font-family: Georgia, 'Times New Roman', serif !important;
+}
+
 .gradio-container {
     background: rgba(255,255,255,0.75)!important;
     backdrop-filter: blur(12px);
@@ -349,6 +358,26 @@ input,textarea,select {
     height:100%; border-radius:20px; transition:width 0.3s ease;
 }
 .gr-dropdown { position:relative!important; z-index:999999!important; }
+
+/* 强制清除下拉菜单的 bottom 样式，设置 top: 100% */
+.gr-dropdown > div:nth-child(2),
+.gr-dropdown-menu,
+.gr-dropdown .dropdown-menu,
+.options {
+    bottom: auto !important;
+    top: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+    margin-top: 4px !important;
+    z-index: 999999 !important;
+    max-height: 280px !important;
+    overflow-y: auto !important;
+    background: white !important;
+    border-radius: 0.8rem !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
 /* 历史记录 */
 .hist-list { display:flex; flex-direction:column; gap:6px; margin-top:8px; }
 .hist-item {
@@ -367,6 +396,90 @@ input,textarea,select {
     background:rgba(241,245,249,0.9); border-radius:30px; padding:4px 12px;
     font-size:0.75rem; color:#2c7a6e; border:1px solid #cbd5e1;
 }
+.radio-options {
+    display: flex;
+    gap: 1.5rem;
+    font-weight: 600;
+    font-size: 1rem;
+}
+.radio-options > label {
+    cursor: pointer;
+    user-select: none;
+}
+.radio-options > label > span {
+    margin-left: 0.3rem;
+}
+
+/* =========================================
+   🌐 综述语言 Radio 选中动效样式
+   ========================================= */
+
+/* 1. 整体选项排列与交互区域 */
+.radio-options label {
+    display: flex !important;
+    align-items: center !important;
+    cursor: pointer !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    transition: background 0.2s ease !important;
+}
+
+/* 鼠标悬停时的背景高亮 */
+.radio-options label:hover {
+    background: rgba(43, 156, 140, 0.08) !important;
+}
+
+/* 2. 重写原生的圆点（去掉默认丑陋的边框） */
+.radio-options input[type="radio"] {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 20px !important;
+    height: 20px !important;
+    border: 2px solid #d1d5db !important; /* 未选中时的灰色边框 */
+    border-radius: 50% !important;
+    margin-right: 10px !important;
+    position: relative !important;
+    cursor: pointer !important;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important; /* 平滑过渡动画 */
+    flex-shrink: 0 !important;
+}
+
+/* 3. 核心效果：选中时的状态 */
+.radio-options input[type="radio"]:checked {
+    border-color: #2b9c8c !important; /* 变成主题色边框 */
+    /* 可选：如果你想让整个圆点填满颜色，取消下面这行的注释 */
+    /* background-color: #2b9c8c !important;  */ 
+    transform: scale(1.15); /* 稍微放大一下，产生“点下去”的反馈感 */
+}
+
+/* 4. 选中时内部生成一个实心小圆点（经典单选框效果） */
+.radio-options input[type="radio"]:checked::after {
+    content: "" !important;
+    display: block !important;
+    width: 10px !important;
+    height: 10px !important;
+    background-color: #2b9c8c !important; /* 主题色实心点 */
+    border-radius: 50% !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) scale(1) !important;
+    /* 弹出动画 */
+    animation: radio-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}
+
+/* 定义弹出动画的关键帧 */
+@keyframes radio-pop {
+    0% { 
+        transform: translate(-50%, -50%) scale(0); /* 从无到有 */
+        opacity: 0;
+    }
+    100% { 
+        transform: translate(-50%, -50%) scale(1); /* 恢复正常大小 */
+        opacity: 1;
+    }
+}
+
 """
 
 # ============================================================
@@ -374,8 +487,6 @@ input,textarea,select {
 # ============================================================
 with gr.Blocks(
     title="综述论文生成工具 | Sprint 2",
-    theme=gr.themes.Soft(),
-    css=CUSTOM_CSS,
 ) as demo:
 
     # ── 欢迎弹窗（Sprint 2）───────────────────────────────
@@ -430,10 +541,13 @@ with gr.Blocks(
                     value=10,
                     label="📑 文献数量"
                 )
-            language_select = gr.Dropdown(
+            # 使用 Radio 替代 Dropdown 实现点选语言选项
+            language_select = gr.Radio(
                 choices=["中文", "English", "中英双语"],
                 value="中文",
-                label="🌐 综述语言"
+                label="🌐 综述语言",
+                elem_classes="radio-options",
+                interactive=True,
             )
             generate_btn = gr.Button("🚀 开始检索与大纲生成", variant="primary", size="lg")
 
@@ -477,9 +591,9 @@ with gr.Blocks(
     gr.Markdown("### 💡 快速示例（点击即可填充）")
     gr.Examples(
         examples=[
-            ["大型语言模型（LLM）综述", 2022, 10, "中文"],
-            ["Retrieval-Augmented Generation", 2021, 10, "English"],
-            ["图神经网络在分子生物学中的应用", 2020, 10, "中英双语"],
+            ["大型语言模型（LLM）综述", 2022, 10, "·中文"],
+            ["Retrieval-Augmented Generation", 2021, 10, "·English"],
+            ["图神经网络在分子生物学中的应用", 2020, 10, "·中英双语"],
         ],
         inputs=[topic_input, year_slider, paper_count, language_select],
         label="✨ 热门主题",
@@ -543,7 +657,8 @@ with gr.Blocks(
 
 
 def launch_app():
-    demo.launch(server_name="0.0.0.0", server_port=7860, share=False, show_error=True, inbrowser=True)
+    demo.launch(server_name="0.0.0.0", server_port=7860, share=False,
+                show_error=True, inbrowser=True, theme=gr.themes.Soft(), css=CUSTOM_CSS)
 
 
 if __name__ == "__main__":
